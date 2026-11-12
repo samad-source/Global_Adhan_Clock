@@ -1,0 +1,33 @@
+
+# RStudio files
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# R package libraries
+renv/library/
+renv/staging/
+
+# Large datasets - do not upload to GitHub
+data/raw/
+data/processed/
+
+# Generated model files
+*.rds
+*.RData
+
+# Temporary and cache files
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Credentials and environment variables
+.Renviron
+.env
+.env.*
+
+# Keep the renv lockfile
+!renv.lock
