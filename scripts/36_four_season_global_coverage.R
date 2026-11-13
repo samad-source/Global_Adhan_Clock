@@ -2,6 +2,7 @@
 # =============================================================
 # GLOBAL ADHAN CLOCK
 # SCRIPT 36: FOUR-SEASON GLOBAL COVERAGE EXPERIMENT
+# CORRECTED VERSION: UTC BOUNDARY-AWARE INTERVALS
 # =============================================================
 
 library(data.table)
@@ -11,6 +12,7 @@ cat("\n")
 cat("=============================================================\n")
 cat("GLOBAL ADHAN CLOCK\n")
 cat("SCRIPT 36: FOUR-SEASON GLOBAL COVERAGE EXPERIMENT\n")
+cat("CORRECTED UTC BOUNDARY HANDLING\n")
 cat("=============================================================\n\n")
 
 
@@ -52,6 +54,11 @@ print(season_dates)
 # =============================================================
 
 assumed_durations <- c(1, 5)
+
+# The longest duration determines how far before midnight
+# an event may start and still overlap the research day.
+
+max_duration_minutes <- max(assumed_durations)
 
 prayer_columns <- c(
   fajr = "fajr_epoch",
@@ -148,7 +155,7 @@ get_utc_epoch <- function(date, time = "00:00:00") {
 
 
 # =============================================================
-# 6. HELPER: CALCULATE COVERAGE
+# 6. HELPER: CALCULATE BOUNDARY-AWARE COVERAGE
 # =============================================================
 
 calculate_season_coverage <- function(
@@ -158,6 +165,8 @@ calculate_season_coverage <- function(
     season_name) {
   
   total_minutes <- 1440
+  
+  day_end <- day_start + 86400
   
   support <- integer(total_minutes)
   
@@ -170,6 +179,34 @@ calculate_season_coverage <- function(
       event_end <- event_start +
         duration_minutes * 60
       
+      
+      # -------------------------------------------------------
+      # Check whether the event interval overlaps the UTC day.
+      #
+      # Intervals are end-exclusive:
+      # [event_start, event_end)
+      # -------------------------------------------------------
+      
+      if (
+        event_start >= day_end ||
+        event_end <= day_start
+      ) {
+        next
+      }
+      
+      
+      # -------------------------------------------------------
+      # Determine the first and last UTC minute touched.
+      #
+      # Minute bins are also end-exclusive.
+      #
+      # This correctly handles:
+      # - Events beginning before midnight.
+      # - Events ending after midnight.
+      # - Events beginning exactly at a minute boundary.
+      # - Events ending exactly at a minute boundary.
+      # -------------------------------------------------------
+      
       first_minute <- floor(
         (event_start - day_start) / 60
       ) + 1
@@ -178,12 +215,22 @@ calculate_season_coverage <- function(
         (event_end - day_start) / 60
       )
       
-      first_minute <- max(1, first_minute)
+      # Clip the interval to the research day.
+      
+      first_minute <- max(
+        1L,
+        as.integer(first_minute)
+      )
       
       last_minute <- min(
         total_minutes,
-        last_minute
+        as.integer(last_minute)
       )
+      
+      
+      # -------------------------------------------------------
+      # Add one unit of support to every overlapping minute.
+      # -------------------------------------------------------
       
       if (first_minute <= last_minute) {
         
@@ -192,6 +239,11 @@ calculate_season_coverage <- function(
       }
     }
   }
+  
+  
+  # -----------------------------------------------------------
+  # Build the minute-by-minute results.
+  # -----------------------------------------------------------
   
   minute_results <- data.table(
     season = season_name,
@@ -205,6 +257,11 @@ calculate_season_coverage <- function(
     origin = "1970-01-01",
     tz = "UTC"
   )]
+  
+  
+  # -----------------------------------------------------------
+  # Calculate summary statistics.
+  # -----------------------------------------------------------
   
   summary <- data.table(
     season = season_name,
@@ -267,7 +324,28 @@ for (season_index in seq_len(nrow(season_dates))) {
   
   
   # -----------------------------------------------------------
-  # Generate local dates around the UTC research day
+  # Generate local dates around the UTC research day.
+  #
+  # We include a one-day buffer on either side to make sure
+  # local dates capable of producing overlapping events
+  # are considered.
+  # -----------------------------------------------------------
+  
+  utc_before <- as.POSIXct(
+    day_start - 86400,
+    origin = "1970-01-01",
+    tz = "UTC"
+  )
+  
+  utc_after <- as.POSIXct(
+    day_end + 86400,
+    origin = "1970-01-01",
+    tz = "UTC"
+  )
+  
+  
+  # -----------------------------------------------------------
+  # Process every research location.
   # -----------------------------------------------------------
   
   for (place_index in seq_len(nrow(places))) {
@@ -275,6 +353,7 @@ for (season_index in seq_len(nrow(season_dates))) {
     place <- places[place_index]
     
     if (place_index %% 500 == 0) {
+      
       cat(
         "Processing location",
         place_index,
@@ -284,19 +363,10 @@ for (season_index in seq_len(nrow(season_dates))) {
       )
     }
     
-    # Find the local dates that could overlap the UTC day.
     
-    utc_before <- as.POSIXct(
-      day_start - 86400,
-      origin = "1970-01-01",
-      tz = "UTC"
-    )
-    
-    utc_after <- as.POSIXct(
-      day_end + 86400,
-      origin = "1970-01-01",
-      tz = "UTC"
-    )
+    # ---------------------------------------------------------
+    # Determine the relevant local calendar dates.
+    # ---------------------------------------------------------
     
     local_start <- as.Date(
       format(
@@ -322,12 +392,11 @@ for (season_index in seq_len(nrow(season_dates))) {
     
     
     # ---------------------------------------------------------
-    # Calculate prayer times for each local date
+    # Calculate prayer times for each local date.
     # ---------------------------------------------------------
     
     for (date_index in seq_along(local_dates)) {
       
-      # IMPORTANT:
       # Indexed iteration preserves the Date class.
       
       local_date <- local_dates[date_index]
@@ -350,7 +419,7 @@ for (season_index in seq_len(nrow(season_dates))) {
       
       
       # -------------------------------------------------------
-      # Record calculation audit
+      # Record calculation audit.
       # -------------------------------------------------------
       
       audit_counter <- audit_counter + 1
@@ -388,7 +457,7 @@ for (season_index in seq_len(nrow(season_dates))) {
       
       
       # -------------------------------------------------------
-      # Extract the five prayer events
+      # Extract the five prayer events.
       # -------------------------------------------------------
       
       for (prayer_index in seq_along(prayer_columns)) {
@@ -399,8 +468,9 @@ for (season_index in seq_len(nrow(season_dates))) {
         
         event_epoch <- result[[epoch_column]]
         
-        # Missing or invalid prayer calculations are preserved
-        # as missing. They are never replaced with invented times.
+        
+        # Preserve missing and invalid calculations.
+        # Never invent unavailable prayer times.
         
         if (
           is.null(event_epoch) ||
@@ -411,18 +481,46 @@ for (season_index in seq_len(nrow(season_dates))) {
           next
         }
         
-        # Keep only events inside the UTC research day.
+        event_epoch <- as.numeric(event_epoch)
+        
+        
+        # -----------------------------------------------------
+        # CORRECTED UTC BOUNDARY RULE
+        #
+        # Keep an event if its assumed interval at the maximum
+        # tested duration overlaps the research day.
+        #
+        # Overlap condition:
+        #
+        # event_start < day_end
+        # AND
+        # event_start + max_duration > day_start
+        #
+        # This includes events that start before midnight
+        # but continue into the research day.
+        # -----------------------------------------------------
+        
+        maximum_event_end <- event_epoch +
+          max_duration_minutes * 60
         
         if (
-          event_epoch < day_start ||
-          event_epoch >= day_end
+          event_epoch >= day_end ||
+          maximum_event_end <= day_start
         ) {
           next
         }
         
+        
         event_counter <- event_counter + 1
         
         all_events[[event_counter]] <- data.table(
+          event_id = paste(
+            season_name,
+            place$geoname_id,
+            as.character(local_date),
+            prayer_name,
+            sep = "_"
+          ),
           season = season_name,
           research_date = as.character(research_date),
           geoname_id = place$geoname_id,
@@ -431,7 +529,7 @@ for (season_index in seq_len(nrow(season_dates))) {
           timezone = place$timezone,
           local_date = as.character(local_date),
           prayer = prayer_name,
-          event_epoch = as.numeric(event_epoch),
+          event_epoch = event_epoch,
           event_utc = as.POSIXct(
             event_epoch,
             origin = "1970-01-01",
@@ -455,7 +553,11 @@ for (season_index in seq_len(nrow(season_dates))) {
 # =============================================================
 
 if (length(all_events) == 0) {
-  stop("No prayer events were generated. Check calculation functions.")
+  
+  stop(
+    "No prayer events were generated. ",
+    "Check calculation functions."
+  )
 }
 
 events <- rbindlist(
@@ -475,6 +577,17 @@ setorder(
   season,
   event_epoch
 )
+
+
+# Check event IDs.
+
+if (anyDuplicated(events$event_id) > 0) {
+  
+  stop("Duplicate prayer event IDs detected.")
+}
+
+
+# Save calculated events and audit records.
 
 fwrite(
   events,
@@ -505,13 +618,26 @@ for (season_index in seq_len(nrow(season_dates))) {
   
   day_start <- get_utc_epoch(research_date)
   
+  day_end <- day_start + 86400
+  
   season_events <- events[
     season == season_name
   ]
   
   cat("\n")
   cat("COVERAGE:", season_name, "\n")
-  cat("Events inside UTC day:", nrow(season_events), "\n")
+  
+  cat(
+    "Candidate intervals overlapping UTC day at maximum duration:",
+    nrow(season_events),
+    "\n"
+  )
+  
+  cat(
+    "Intervals beginning before UTC midnight:",
+    sum(season_events$event_epoch < day_start),
+    "\n"
+  )
   
   for (duration in assumed_durations) {
     
@@ -616,25 +742,41 @@ fwrite(
 # =============================================================
 
 audit_summary <- audit[, .(
+  
   total_calculations = .N,
-  successful_calculations = sum(calculation_success),
-  failed_calculations = sum(!calculation_success),
+  
+  successful_calculations = sum(
+    calculation_success
+  ),
+  
+  failed_calculations = sum(
+    !calculation_success
+  ),
+  
   complete_calculations = sum(
     prayer_status == "complete",
     na.rm = TRUE
   ),
+  
   partial_calculations = sum(
     prayer_status != "complete" &
       prayer_status != "error",
     na.rm = TRUE
   )
+  
 ), by = season]
 
+
 event_summary <- events[, .(
+  
   total_prayer_events = .N,
+  
   unique_locations = uniqueN(geoname_id),
+  
   unique_countries = uniqueN(country_code)
+  
 ), by = season]
+
 
 quality_summary <- merge(
   audit_summary,
@@ -699,7 +841,7 @@ ggsave(
 
 
 # =============================================================
-# 15. VISUALIZATION: WEAKEST MINUTE SUPPORT
+# 15. VISUALIZATION: MINUTE SUPPORT
 # =============================================================
 
 plot_weakest <- ggplot(
@@ -765,8 +907,17 @@ cat(
 )
 
 cat(
-  "Generated prayer events:",
+  "Generated overlapping candidate intervals:",
   nrow(events),
+  "\n"
+)
+
+cat(
+  "Intervals beginning before UTC midnight:",
+  sum(
+    events$event_epoch <
+      get_utc_epoch(season_dates$research_date[1])
+  ),
   "\n"
 )
 
@@ -779,20 +930,76 @@ print(coverage_summary)
 cat("\nDURATION COMPARISON\n")
 print(duration_comparison)
 
+
+# -------------------------------------------------------------
+# Verify expected minute counts.
+# -------------------------------------------------------------
+
+expected_rows <- nrow(season_dates) *
+  1440 *
+  length(assumed_durations)
+
+if (nrow(minute_coverage) != expected_rows) {
+  
+  stop(
+    "Unexpected number of minute records. ",
+    "Expected: ", expected_rows,
+    "; Found: ", nrow(minute_coverage)
+  )
+}
+
 cat("\n")
-cat("OUTPUT FILES SAVED SUCCESSFULLY.\n")
+cat("BOUNDARY HANDLING: ENABLED\n")
+cat(
+  "Maximum assumed duration:",
+  max_duration_minutes,
+  "minutes\n"
+)
+
+cat(
+  "Minute records generated:",
+  nrow(minute_coverage),
+  "\n"
+)
+
+cat("\nOUTPUT FILES SAVED SUCCESSFULLY.\n")
 
 cat("Research results:", output_directory, "\n")
 cat("Research plots:", plot_directory, "\n")
 
+
+# =============================================================
+# 17. SCIENTIFIC LIMITATIONS
+# =============================================================
+
 cat("\n")
-cat("IMPORTANT SCIENTIFIC LIMITATION:\n")
+cat("IMPORTANT SCIENTIFIC LIMITATIONS:\n")
+
 cat(
-  "These results represent calculated prayer times with assumed\n",
-  "event durations. They are NOT verified actual Adhan broadcasts.\n"
+  "1. These are calculated prayer times, not verified\n",
+  "   actual Adhan broadcasts.\n"
+)
+
+cat(
+  "2. Event durations of 1 and 5 minutes are assumptions.\n"
+)
+
+cat(
+  "3. The research covers four selected seasonal dates,\n",
+  "   not every day of the year.\n"
+)
+
+cat(
+  "4. Partial prayer calculations remain unavailable;\n",
+  "   no missing prayer times are invented.\n"
+)
+
+cat(
+  "5. Full UTC minute coverage in this model does not\n",
+  "   establish the original actual-broadcast hypothesis.\n"
 )
 
 cat("\n")
 cat("=============================================================\n")
-cat("SCRIPT 36 COMPLETED\n")
+cat("SCRIPT 36 COMPLETED SUCCESSFULLY\n")
 cat("=============================================================\n")
