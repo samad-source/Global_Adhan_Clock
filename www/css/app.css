@@ -1,0 +1,534 @@
+
+/* ==========================================================
+   GLOBAL ADHAN CLOCK
+   FILE: www/css/app.css
+   PURPOSE: Application design system
+   ========================================================== */
+
+:root {
+  --background: #08111f;
+  --surface: #101d2e;
+  --surface-light: #17263a;
+  --border: #26374c;
+  --text: #edf4fc;
+  --muted: #9aabc0;
+  --accent: #35c9b0;
+  --accent-blue: #54a9ed;
+  --warning: #e9b85d;
+  --success: #4ed5a1;
+}
+
+/* ----------------------------------------------------------
+   GLOBAL PAGE
+   ---------------------------------------------------------- */
+
+html,
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--text);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+}
+
+body {
+  margin: 0;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 30px 34px 55px;
+}
+
+p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  color: var(--text);
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 32px;
+  letter-spacing: -1px;
+  margin-top: 8px;
+  margin-bottom: 10px;
+}
+
+h3 {
+  font-size: 18px;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+h4 {
+  font-size: 15px;
+}
+
+/* ----------------------------------------------------------
+   NAVIGATION
+   ---------------------------------------------------------- */
+
+.navbar {
+  min-height: 66px;
+  margin-bottom: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: #0c1727;
+}
+
+.navbar-inverse .navbar-brand {
+  color: var(--text);
+}
+
+.navbar-brand {
+  height: 66px;
+  padding-top: 22px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.brand-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  width: 27px;
+  height: 27px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #071b22;
+  font-weight: 800;
+}
+
+.navbar-inverse .navbar-nav > li > a {
+  color: #b6c4d6;
+  padding-top: 23px;
+  padding-bottom: 23px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.navbar-inverse .navbar-nav > li > a:hover,
+.navbar-inverse .navbar-nav > .active > a,
+.navbar-inverse .navbar-nav > .active > a:hover {
+  color: var(--accent);
+  background: transparent;
+}
+
+.navbar-inverse .navbar-toggle {
+  border-color: var(--border);
+  margin-top: 15px;
+}
+
+.navbar-inverse .navbar-toggle:hover,
+.navbar-inverse .navbar-toggle:focus {
+  background: var(--surface-light);
+}
+
+/* ----------------------------------------------------------
+   PAGE HEADINGS
+   ---------------------------------------------------------- */
+
+.page-heading {
+  margin-bottom: 28px;
+}
+
+.page-heading h1 {
+  margin-bottom: 8px;
+}
+
+.page-heading p {
+  max-width: 720px;
+  font-size: 14px;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ----------------------------------------------------------
+   METRIC CARDS
+   ---------------------------------------------------------- */
+
+.metric-card {
+  min-height: 135px;
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.metric-label {
+  margin-bottom: 13px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.metric-value {
+  color: var(--text);
+  font-size: 29px;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-text {
+  font-size: 21px;
+}
+
+.clock-value {
+  color: var(--accent);
+}
+
+.metric-caption {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ----------------------------------------------------------
+   CONTENT CARDS
+   ---------------------------------------------------------- */
+
+.content-card {
+  margin-bottom: 20px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface);
+}
+
+.content-card > p:last-child {
+  margin-bottom: 0;
+}
+
+.card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.card-heading h3 {
+  margin-bottom: 5px;
+}
+
+.card-heading p {
+  margin-bottom: 0;
+}
+
+.live-indicator {
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(53, 201, 176, 0.3);
+  border-radius: 20px;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+/* ----------------------------------------------------------
+   GLOBE
+   ---------------------------------------------------------- */
+
+.globe-preview-card {
+  overflow: hidden;
+}
+
+.globe-frame {
+  display: block;
+  width: 100%;
+  height: 390px;
+  border: 0;
+  border-radius: 9px;
+  background: #050b14;
+}
+
+.globe-frame-large {
+  height: 650px;
+}
+
+.location-summary {
+  min-height: 235px;
+}
+
+.large-clock {
+  margin: 12px 0 5px;
+  color: var(--accent);
+  font-size: 35px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+
+.muted-text {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ----------------------------------------------------------
+   RESEARCH SUMMARY
+   ---------------------------------------------------------- */
+
+.research-summary {
+  min-height: 270px;
+}
+
+.research-number {
+  margin: 12px 0;
+  color: var(--accent-blue);
+  font-size: 42px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-message {
+  margin-top: 10px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.status-success {
+  border-color: rgba(78, 213, 161, 0.3);
+  background: rgba(78, 213, 161, 0.07);
+  color: var(--success);
+}
+
+.status-warning {
+  border-color: rgba(233, 184, 93, 0.3);
+  background: rgba(233, 184, 93, 0.07);
+  color: var(--warning);
+}
+
+.status-neutral {
+  background: var(--surface-light);
+  color: var(--muted);
+}
+
+/* ----------------------------------------------------------
+   FEATURE ITEMS
+   ---------------------------------------------------------- */
+
+.feature-item {
+  height: 100%;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-light);
+}
+
+.feature-icon {
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.feature-item h4 {
+  margin-top: 5px;
+}
+
+.feature-item p {
+  margin-bottom: 0;
+  font-size: 12px;
+}
+
+/* ----------------------------------------------------------
+   INPUTS
+   ---------------------------------------------------------- */
+
+.form-control {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #0c1727;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(53, 201, 176, 0.12);
+  background: #0c1727;
+  color: var(--text);
+}
+
+.control-label {
+  margin-bottom: 8px;
+  color: #c7d4e3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.input-group-addon {
+  border-color: var(--border);
+  background: var(--surface-light);
+  color: var(--muted);
+}
+
+/* ----------------------------------------------------------
+   TABLES
+   ---------------------------------------------------------- */
+
+.table {
+  margin-bottom: 0;
+  color: var(--text);
+}
+
+.table > thead > tr > th {
+  padding: 13px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.table > tbody > tr > td {
+  padding: 15px 13px;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background: var(--surface-light);
+}
+
+.table-hover > tbody > tr:hover {
+  background: #1d3047;
+}
+
+/* ----------------------------------------------------------
+   EMPTY STATES
+   ---------------------------------------------------------- */
+
+.empty-state {
+  padding: 35px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: rgba(23, 38, 58, 0.35);
+  text-align: center;
+}
+
+.empty-state h4 {
+  margin-top: 15px;
+}
+
+.empty-state p {
+  max-width: 580px;
+  margin: 8px auto;
+  font-size: 12px;
+}
+
+.empty-state-icon {
+  color: var(--accent-blue);
+  font-size: 30px;
+}
+
+/* ----------------------------------------------------------
+   DIVIDERS AND GENERAL ELEMENTS
+   ---------------------------------------------------------- */
+
+hr {
+  border-top: 1px solid var(--border);
+}
+
+a {
+  color: var(--accent);
+}
+
+a:hover {
+  color: #8ae8d8;
+}
+
+::selection {
+  background: var(--accent);
+  color: #06131c;
+}
+
+/* ----------------------------------------------------------
+   RESPONSIVE LAYOUT
+   ---------------------------------------------------------- */
+
+@media (max-width: 991px) {
+  .app-container {
+    padding: 24px 20px 40px;
+  }
+
+  .globe-frame {
+    height: 340px;
+  }
+
+  .globe-frame-large {
+    height: 480px;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-container {
+    padding: 20px 13px 35px;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+
+  .metric-card {
+    min-height: 115px;
+    padding: 16px;
+  }
+
+  .metric-value {
+    font-size: 24px;
+  }
+
+  .large-clock {
+    font-size: 29px;
+  }
+
+  .content-card {
+    padding: 17px;
+  }
+
+  .globe-frame {
+    height: 300px;
+  }
+
+  .globe-frame-large {
+    height: 390px;
+  }
+
+  .card-heading {
+    flex-direction: column;
+  }
+}

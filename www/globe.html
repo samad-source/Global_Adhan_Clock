@@ -3,18 +3,11 @@
 <html lang="en">
 
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>Global Adhan Clock - Earth</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Adhan Clock - Accurate Global Globe</title>
 
   <style>
-
     * {
       box-sizing: border-box;
     }
@@ -37,51 +30,67 @@
       display: block;
     }
 
-    #instruction-panel {
+    #instruction-panel,
+    #location-panel,
+    #legend {
       position: absolute;
-      top: 18px;
-      left: 18px;
       z-index: 5;
-      background: rgba(10, 25, 44, 0.85);
+      background: rgba(10, 25, 44, 0.94);
       border: 1px solid rgba(255,255,255,0.15);
-      padding: 12px 16px;
-      border-radius: 10px;
-      font-size: 13px;
-      color: #d8e6f5;
-      max-width: 260px;
+      border-radius: 12px;
+      padding: 14px;
     }
 
-    #city-panel {
-      position: absolute;
-      right: 18px;
-      bottom: 18px;
-      z-index: 5;
-      width: 270px;
-      padding: 18px;
-      background: rgba(10, 25, 44, 0.94);
-      border: 1px solid rgba(112, 214, 176, 0.45);
-      border-radius: 12px;
+    #instruction-panel {
+      top: 16px;
+      left: 16px;
+      width: 250px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #location-panel {
+      right: 16px;
+      bottom: 16px;
+      width: 285px;
       display: none;
     }
 
-    #city-panel h3 {
+    #location-panel h3 {
+      color: #70d6b0;
       margin-top: 0;
-      margin-bottom: 8px;
-      color: #70d6b0;
     }
 
-    #city-panel p {
-      color: #d2deed;
+    #location-panel p {
       font-size: 13px;
-      line-height: 1.6;
-      margin: 5px 0;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
     }
 
-    #local-clock {
-      color: #70d6b0;
-      font-size: 17px;
+    #legend {
+      right: 16px;
+      top: 16px;
+      width: 175px;
+      font-size: 12px;
+    }
+
+    .legend-title {
       font-weight: bold;
-      margin-top: 12px;
+      margin-bottom: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 7px 0;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
     }
 
     #close-panel {
@@ -89,18 +98,40 @@
       top: 8px;
       right: 10px;
       background: transparent;
-      color: white;
       border: none;
+      color: white;
       font-size: 20px;
       cursor: pointer;
     }
 
-    #selection-status {
+    #dataset-count {
       color: #70d6b0;
-      font-size: 12px;
-      margin-top: 10px;
+      font-weight: bold;
     }
 
+    #data-status {
+      color: #70d6b0;
+      font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+      #instruction-panel {
+        width: 190px;
+        font-size: 11px;
+      }
+
+      #legend {
+        top: auto;
+        bottom: 16px;
+        left: 16px;
+        right: auto;
+        width: 145px;
+      }
+
+      #location-panel {
+        width: 210px;
+      }
+    }
   </style>
 
   <script type="importmap">
@@ -111,48 +142,35 @@
     }
   }
   </script>
-
 </head>
-
 
 <body>
 
   <div id="globe-container"></div>
 
-
   <div id="instruction-panel">
-
     <strong>GLOBAL ADHAN CLOCK</strong>
-
     <p>Drag to rotate Earth.</p>
-
     <p>Scroll to zoom.</p>
-
-    <p>Click a city marker to explore its local prayer times.</p>
-
+    <p>Click a city point to select it.</p>
+    <p>Click anywhere else on Earth's surface to select coordinates.</p>
+    <p id="dataset-count">Loading locations...</p>
   </div>
 
+  <div id="legend">
+    <div class="legend-title">CONTINENTS</div>
+    <div id="legend-items"></div>
+  </div>
 
-  <div id="city-panel">
-
+  <div id="location-panel">
     <button id="close-panel">×</button>
-
-    <h3 id="city-name">Selected City</h3>
-
-    <p id="city-country"></p>
-
-    <p id="city-coordinates"></p>
-
-    <p id="city-timezone"></p>
-
-    <div id="local-clock"></div>
-
-    <div id="selection-status">
-      Location selected
-    </div>
-
+    <h3 id="location-name">Selected Location</h3>
+    <p id="location-country"></p>
+    <p id="location-continent"></p>
+    <p id="location-coordinates"></p>
+    <p id="location-timezone"></p>
+    <p id="data-status">Location selected</p>
   </div>
-
 
   <script type="module">
 
@@ -163,31 +181,76 @@
 
 
     // ========================================================
-    // 1. SCENE
+    // 1. CONTINENT COLOURS
     // ========================================================
 
-    const container =
-      document.getElementById("globe-container");
+    const continentColors = {
+
+      "Africa": "#F59E0B",
+
+      "Asia": "#EF4444",
+
+      "Europe": "#3B82F6",
+
+      "North America": "#22C55E",
+
+      "South America": "#A855F7",
+
+      "Oceania": "#06B6D4",
+
+      "Antarctica": "#E5E7EB"
+
+    };
+
+
+    const legend = document.getElementById(
+      "legend-items"
+    );
+
+    Object.entries(continentColors).forEach(
+      ([name, color]) => {
+
+        const item = document.createElement("div");
+
+        item.className = "legend-item";
+
+        const dot = document.createElement("span");
+
+        dot.className = "legend-dot";
+
+        dot.style.backgroundColor = color;
+
+        const label = document.createElement("span");
+
+        label.textContent = name;
+
+        item.appendChild(dot);
+
+        item.appendChild(label);
+
+        legend.appendChild(item);
+
+      }
+    );
+
+
+    // ========================================================
+    // 2. SCENE AND CAMERA
+    // ========================================================
+
+    const container = document.getElementById(
+      "globe-container"
+    );
 
     const scene = new THREE.Scene();
 
     scene.background = new THREE.Color(0x07111f);
 
-
-    // ========================================================
-    // 2. CAMERA
-    // ========================================================
-
     const camera = new THREE.PerspectiveCamera(
-
       45,
-
       window.innerWidth / window.innerHeight,
-
       0.1,
-
       1000
-
     );
 
     camera.position.set(0, 0, 3);
@@ -198,9 +261,7 @@
     // ========================================================
 
     const renderer = new THREE.WebGLRenderer({
-
       antialias: true
-
     });
 
     renderer.setPixelRatio(
@@ -219,13 +280,9 @@
     // 4. LIGHTING
     // ========================================================
 
-    const ambientLight = new THREE.AmbientLight(
-      0xffffff,
-      1.5
+    scene.add(
+      new THREE.AmbientLight(0xffffff, 1.5)
     );
-
-    scene.add(ambientLight);
-
 
     const sunlight = new THREE.DirectionalLight(
       0xffffff,
@@ -238,7 +295,7 @@
 
 
     // ========================================================
-    // 5. ORBIT CONTROLS
+    // 5. CONTROLS
     // ========================================================
 
     const controls = new OrbitControls(
@@ -261,8 +318,8 @@
 
     const earthGeometry = new THREE.SphereGeometry(
       1,
-      64,
-      64
+      128,
+      128
     );
 
     const textureLoader = new THREE.TextureLoader();
@@ -272,11 +329,8 @@
     );
 
     const earthMaterial = new THREE.MeshPhongMaterial({
-
       map: earthTexture,
-
       shininess: 8
-
     });
 
     const earth = new THREE.Mesh(
@@ -288,274 +342,547 @@
 
 
     // ========================================================
-    // 7. LOCATION DATA
+    // 7. ACCURATE GEOGRAPHICAL COORDINATES
     // ========================================================
 
-    // This is the initial demonstration dataset.
-    // The next expansion will load the full global dataset
-    // rather than manually writing every marker here.
+    /*
+      This conversion follows the standard Three.js
+      SphereGeometry longitude/UV orientation for a
+      north-up equirectangular Earth texture.
 
-    const cities = [
+      Longitude 0 is positioned at the texture's
+      central meridian.
 
-      {
-        location_id: "lagos-nigeria",
-        city: "Lagos",
-        country: "Nigeria",
-        latitude: 6.5244,
-        longitude: 3.3792,
-        timezone: "Africa/Lagos"
-      },
-
-      {
-        location_id: "abuja-nigeria",
-        city: "Abuja",
-        country: "Nigeria",
-        latitude: 9.0765,
-        longitude: 7.3986,
-        timezone: "Africa/Lagos"
-      },
-
-      {
-        location_id: "london-united-kingdom",
-        city: "London",
-        country: "United Kingdom",
-        latitude: 51.5072,
-        longitude: -0.1276,
-        timezone: "Europe/London"
-      },
-
-      {
-        location_id: "tokyo-japan",
-        city: "Tokyo",
-        country: "Japan",
-        latitude: 35.6762,
-        longitude: 139.6503,
-        timezone: "Asia/Tokyo"
-      }
-
-    ];
-
-
-    // ========================================================
-    // 8. COORDINATES TO EARTH POSITION
-    // ========================================================
+      Latitude remains positive toward the north.
+    */
 
     function geographicToVector(
       latitude,
       longitude,
-      radius = 1.015
+      radius = 1.008
     ) {
 
-      const phi =
-        latitude * Math.PI / 180;
+      const lat = THREE.MathUtils.degToRad(
+        latitude
+      );
 
-      const lambda =
-        longitude * Math.PI / 180;
+      const lon = THREE.MathUtils.degToRad(
+        longitude
+      );
 
       const x =
-        radius * Math.cos(phi) * Math.sin(lambda);
+        radius * Math.cos(lat) * Math.cos(lon);
 
       const y =
-        radius * Math.sin(phi);
+        radius * Math.sin(lat);
 
       const z =
-        radius * Math.cos(phi) * Math.cos(lambda);
+        -radius * Math.cos(lat) * Math.sin(lon);
 
       return new THREE.Vector3(x, y, z);
 
     }
 
 
-    // ========================================================
-    // 9. CITY MARKERS
-    // ========================================================
+    function vectorToGeographic(point) {
 
-    const markerObjects = [];
+      const normalized = point.clone().normalize();
 
-    const markerGeometry = new THREE.SphereGeometry(
-      0.012,
-      12,
-      12
-    );
-
-    cities.forEach(city => {
-
-      const markerMaterial =
-        new THREE.MeshBasicMaterial({
-          color: 0xff5555
-        });
-
-      const marker = new THREE.Mesh(
-        markerGeometry,
-        markerMaterial
+      const latitude = THREE.MathUtils.radToDeg(
+        Math.asin(normalized.y)
       );
 
-      marker.position.copy(
+      const longitude = THREE.MathUtils.radToDeg(
+        Math.atan2(-normalized.z, normalized.x)
+      );
+
+      return {
+        latitude,
+        longitude
+      };
+
+    }
+
+
+    // ========================================================
+    // 8. GLOBAL DATA
+    // ========================================================
+
+    let cityRecords = [];
+
+    let cityPoints = null;
+
+    let selectedMarker = null;
+
+
+    // ========================================================
+    // 9. CSV PARSER
+    // ========================================================
+
+    function parseCSV(text) {
+
+      const rows = [];
+
+      let row = [];
+
+      let value = "";
+
+      let insideQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+
+        const char = text[i];
+
+        if (char === '"') {
+
+          if (
+            insideQuotes &&
+            text[i + 1] === '"'
+          ) {
+
+            value += '"';
+
+            i++;
+
+          } else {
+
+            insideQuotes = !insideQuotes;
+
+          }
+
+        } else if (
+          char === "," &&
+          !insideQuotes
+        ) {
+
+          row.push(value);
+
+          value = "";
+
+        } else if (
+          (char === "\n" || char === "\r") &&
+          !insideQuotes
+        ) {
+
+          if (char === "\r" && text[i + 1] === "\n") {
+            i++;
+          }
+
+          row.push(value);
+
+          rows.push(row);
+
+          row = [];
+
+          value = "";
+
+        } else {
+
+          value += char;
+
+        }
+
+      }
+
+      if (value.length > 0 || row.length > 0) {
+
+        row.push(value);
+
+        rows.push(row);
+
+      }
+
+      return rows;
+
+    }
+
+
+    // ========================================================
+    // 10. LOAD GLOBAL LOCATIONS
+    // ========================================================
+
+    async function loadGlobalCities() {
+
+      try {
+
+        const response = await fetch(
+          "/globe/global_cities.csv"
+        );
+
+        if (!response.ok) {
+          throw new Error("Could not load city dataset.");
+        }
+
+        const csvText = await response.text();
+
+        const records = parseCSV(csvText);
+
+        const headers = records[0].map(
+          header => header.replace(/^\uFEFF/, "")
+        );
+
+        const index = {};
+
+        headers.forEach((header, i) => {
+          index[header] = i;
+        });
+
+        const required = [
+          "location_id",
+          "city",
+          "country_code",
+          "country_name",
+          "latitude",
+          "longitude",
+          "timezone",
+          "continent"
+        ];
+
+        for (const name of required) {
+
+          if (index[name] === undefined) {
+            throw new Error(
+              "Missing CSV column: " + name
+            );
+          }
+
+        }
+
+        const positions = [];
+
+        const colors = [];
+
+        cityRecords = [];
+
+        for (let i = 1; i < records.length; i++) {
+
+          const row = records[i];
+
+          const latitude = Number(
+            row[index.latitude]
+          );
+
+          const longitude = Number(
+            row[index.longitude]
+          );
+
+          const continent = row[index.continent];
+
+          if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            !continentColors[continent]
+          ) {
+            continue;
+          }
+
+          const city = {
+
+            location_id: row[index.location_id],
+
+            city: row[index.city],
+
+            country_code: row[index.country_code],
+
+            country_name: row[index.country_name],
+
+            latitude,
+
+            longitude,
+
+            timezone: row[index.timezone],
+
+            continent,
+
+            population: Number(
+              row[index.population]
+            )
+
+          };
+
+          cityRecords.push(city);
+
+          const position = geographicToVector(
+            latitude,
+            longitude
+          );
+
+          positions.push(
+            position.x,
+            position.y,
+            position.z
+          );
+
+          const color = new THREE.Color(
+            continentColors[continent]
+          );
+
+          colors.push(
+            color.r,
+            color.g,
+            color.b
+          );
+
+        }
+
+
+        // Create one geometry for all locations.
+
+        const geometry = new THREE.BufferGeometry();
+
+        geometry.setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(
+            positions,
+            3
+          )
+        );
+
+        geometry.setAttribute(
+          "color",
+          new THREE.Float32BufferAttribute(
+            colors,
+            3
+          )
+        );
+
+
+        // Each point receives its continent colour.
+
+        const material = new THREE.PointsMaterial({
+
+          size: 0.008,
+
+          sizeAttenuation: true,
+
+          vertexColors: true,
+
+          transparent: true,
+
+          opacity: 0.95,
+
+          depthTest: true
+
+        });
+
+
+        cityPoints = new THREE.Points(
+          geometry,
+          material
+        );
+
+        earth.add(cityPoints);
+
+
+        document.getElementById(
+          "dataset-count"
+        ).textContent =
+          cityRecords.length.toLocaleString() +
+          " accurately positioned locations loaded.";
+
+        console.log(
+          "Global locations loaded:",
+          cityRecords.length
+        );
+
+        console.log(
+          "Continent colour classification completed."
+        );
+
+      } catch (error) {
+
+        console.error(
+          "GLOBAL GLOBE ERROR:",
+          error
+        );
+
+        document.getElementById(
+          "dataset-count"
+        ).textContent =
+          "Dataset loading failed: " + error.message;
+
+      }
+
+    }
+
+
+    // ========================================================
+    // 11. SELECTED LOCATION MARKER
+    // ========================================================
+
+    function displaySelectedMarker(
+      latitude,
+      longitude
+    ) {
+
+      if (selectedMarker) {
+
+        earth.remove(selectedMarker);
+
+        selectedMarker.geometry.dispose();
+
+        selectedMarker.material.dispose();
+
+      }
+
+      const geometry = new THREE.SphereGeometry(
+        0.018,
+        16,
+        16
+      );
+
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xffffff
+      });
+
+      selectedMarker = new THREE.Mesh(
+        geometry,
+        material
+      );
+
+      selectedMarker.position.copy(
         geographicToVector(
-          city.latitude,
-          city.longitude
+          latitude,
+          longitude,
+          1.025
         )
       );
 
-      marker.userData.city = city;
+      earth.add(selectedMarker);
 
-      earth.add(marker);
-
-      markerObjects.push(marker);
-
-    });
+    }
 
 
     // ========================================================
-    // 10. CLICK DETECTION
+    // 12. SEND SELECTION TO SHINY
+    // ========================================================
+
+    function sendLocationToShiny(location) {
+
+      window.parent.postMessage({
+
+        type: "global-adhan-location-selected",
+
+        location: {
+
+          location_id: location.location_id || null,
+
+          city: location.city || "Selected Point",
+
+          country: location.country_name || "",
+
+          country_code: location.country_code || "",
+
+          continent: location.continent || "",
+
+          latitude: location.latitude,
+
+          longitude: location.longitude,
+
+          timezone: location.timezone || ""
+
+        }
+
+      }, window.location.origin);
+
+    }
+
+
+    // ========================================================
+    // 13. SHOW SELECTED LOCATION
+    // ========================================================
+
+    function showSelectedLocation(location) {
+
+      document.getElementById(
+        "location-name"
+      ).textContent =
+        location.city || "Selected Point";
+
+      document.getElementById(
+        "location-country"
+      ).textContent =
+        "Country: " +
+        (location.country_name || "Not identified");
+
+      document.getElementById(
+        "location-continent"
+      ).textContent =
+        "Continent: " +
+        (location.continent || "Not identified");
+
+      document.getElementById(
+        "location-coordinates"
+      ).textContent =
+        "Latitude: " +
+        location.latitude.toFixed(5) +
+        " | Longitude: " +
+        location.longitude.toFixed(5);
+
+      document.getElementById(
+        "location-timezone"
+      ).textContent =
+        "Timezone: " +
+        (location.timezone || "Pending identification");
+
+      document.getElementById(
+        "data-status"
+      ).textContent =
+        "Location coordinates selected.";
+
+      document.getElementById(
+        "location-panel"
+      ).style.display = "block";
+
+      displaySelectedMarker(
+        location.latitude,
+        location.longitude
+      );
+
+      sendLocationToShiny(location);
+
+    }
+
+
+    // ========================================================
+    // 14. CLICK DETECTION
     // ========================================================
 
     const raycaster = new THREE.Raycaster();
 
+    raycaster.params.Points.threshold = 0.018;
+
     const mouse = new THREE.Vector2();
 
-    let selectedCity = null;
-
-
-    // ========================================================
-    // 11. SEND LOCATION TO SHINY
-    // ========================================================
-
-    function sendLocationToShiny(city) {
-
-      window.parent.postMessage(
-
-        {
-
-          type: "global-adhan-location-selected",
-
-          location: {
-
-            location_id: city.location_id,
-
-            city: city.city,
-
-            country: city.country,
-
-            latitude: city.latitude,
-
-            longitude: city.longitude,
-
-            timezone: city.timezone
-
-          }
-
-        },
-
-        window.location.origin
-
-      );
-
-    }
-
-
-    // ========================================================
-    // 12. LOCAL CLOCK
-    // ========================================================
-
-    function updateLocalClock() {
-
-      if (!selectedCity) {
-        return;
-      }
-
-      const clock = document.getElementById(
-        "local-clock"
-      );
-
-      const now = new Date();
-
-      try {
-
-        clock.textContent =
-          new Intl.DateTimeFormat(
-
-            "en-GB",
-
-            {
-
-              timeZone: selectedCity.timezone,
-
-              weekday: "short",
-
-              year: "numeric",
-
-              month: "short",
-
-              day: "2-digit",
-
-              hour: "2-digit",
-
-              minute: "2-digit",
-
-              second: "2-digit",
-
-              hour12: false
-
-            }
-
-          ).format(now);
-
-      } catch (error) {
-
-        clock.textContent =
-          "Local clock unavailable";
-
-      }
-
-    }
-
-
-    // ========================================================
-    // 13. SHOW SELECTED CITY
-    // ========================================================
-
-    function showCity(city) {
-
-      selectedCity = city;
-
-      document.getElementById(
-        "city-name"
-      ).textContent = city.city;
-
-      document.getElementById(
-        "city-country"
-      ).textContent = city.country;
-
-      document.getElementById(
-        "city-coordinates"
-      ).textContent =
-        "Latitude: " + city.latitude +
-        " | Longitude: " + city.longitude;
-
-      document.getElementById(
-        "city-timezone"
-      ).textContent =
-        "Timezone: " + city.timezone;
-
-      document.getElementById(
-        "city-panel"
-      ).style.display = "block";
-
-      updateLocalClock();
-
-      sendLocationToShiny(city);
-
-    }
-
-
-    // ========================================================
-    // 14. HANDLE MARKER CLICKS
-    // ========================================================
+    let pointerStart = null;
 
     renderer.domElement.addEventListener(
-      "click",
-      function(event) {
+      "pointerdown",
+      event => {
+
+        pointerStart = {
+          x: event.clientX,
+          y: event.clientY
+        };
+
+      }
+    );
+
+
+    renderer.domElement.addEventListener(
+      "pointerup",
+      event => {
+
+        if (!pointerStart) return;
+
+        const movement = Math.hypot(
+          event.clientX - pointerStart.x,
+          event.clientY - pointerStart.y
+        );
+
+        pointerStart = null;
+
+        if (movement > 5) return;
 
         const bounds =
           renderer.domElement.getBoundingClientRect();
@@ -568,62 +895,104 @@
           -((event.clientY - bounds.top) /
             bounds.height) * 2 + 1;
 
-        raycaster.setFromCamera(mouse, camera);
+        raycaster.setFromCamera(
+          mouse,
+          camera
+        );
 
-        const intersections =
-          raycaster.intersectObjects(markerObjects);
 
-        if (intersections.length > 0) {
+        // Check city points first.
 
-          const clickedMarker =
-            intersections[0].object;
+        if (cityPoints) {
 
-          const city =
-            clickedMarker.userData.city;
+          const intersections =
+            raycaster.intersectObject(
+              cityPoints,
+              false
+            );
 
-          showCity(city);
+          if (intersections.length > 0) {
+
+            const city =
+              cityRecords[intersections[0].index];
+
+            if (city) {
+
+              showSelectedLocation(city);
+
+              return;
+
+            }
+
+          }
 
         }
+
+
+        // If no city was clicked, select the Earth surface.
+
+        const earthHits =
+          raycaster.intersectObject(
+            earth,
+            false
+          );
+
+        if (earthHits.length === 0) return;
+
+        const localPoint =
+          earth.worldToLocal(
+            earthHits[0].point.clone()
+          );
+
+        const coordinates =
+          vectorToGeographic(localPoint);
+
+        showSelectedLocation({
+
+          city: "Selected Point",
+
+          latitude: coordinates.latitude,
+
+          longitude: coordinates.longitude
+
+        });
 
       }
     );
 
 
     // ========================================================
-    // 15. CLOSE LOCATION PANEL
+    // 15. CLOSE PANEL
     // ========================================================
 
     document.getElementById(
       "close-panel"
-    ).addEventListener("click", function() {
+    ).addEventListener("click", () => {
 
       document.getElementById(
-        "city-panel"
+        "location-panel"
       ).style.display = "none";
 
     });
 
 
     // ========================================================
-    // 16. RESPONSIVE WINDOW
+    // 16. RESIZE
     // ========================================================
 
-    window.addEventListener(
-      "resize",
-      function() {
+    window.addEventListener("resize", () => {
 
-        camera.aspect =
-          window.innerWidth / window.innerHeight;
+      camera.aspect =
+        window.innerWidth / window.innerHeight;
 
-        camera.updateProjectionMatrix();
+      camera.updateProjectionMatrix();
 
-        renderer.setSize(
-          window.innerWidth,
-          window.innerHeight
-        );
+      renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+      );
 
-      }
-    );
+    });
 
 
     // ========================================================
@@ -636,16 +1005,23 @@
 
       controls.update();
 
-      updateLocalClock();
-
-      renderer.render(scene, camera);
+      renderer.render(
+        scene,
+        camera
+      );
 
     }
 
     animate();
 
+
+    // ========================================================
+    // 18. START
+    // ========================================================
+
+    loadGlobalCities();
+
   </script>
 
 </body>
-
 </html>
