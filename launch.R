@@ -1,19 +1,48 @@
 
+# ==========================================
 # GLOBAL ADHAN CLOCK
 # APPLICATION LAUNCHER
+# ==========================================
 
-library(shiny)
+# Confirm that we are in the project directory
+project_dir <- normalizePath(
+  getwd(),
+  winslash = "/",
+  mustWork = TRUE
+)
 
-# Load the saved application from app.R
-app_environment <- new.env(parent = globalenv())
+cat("\n====================================\n")
+cat("GLOBAL ADHAN CLOCK\n")
+cat("STARTING APPLICATION\n")
+cat("====================================\n")
 
-app <- source(
-  "app.R",
-  local = app_environment
-)$value
+cat("\nProject directory:\n")
+cat(project_dir, "\n")
 
-# Launch the complete application
+# Check that the essential application files exist
+required_files <- c(
+  "ui.R",
+  "server.R"
+)
+
+missing_files <- required_files[
+  !file.exists(file.path(project_dir, required_files))
+]
+
+if (length(missing_files) > 0) {
+  stop(
+    paste(
+      "Missing application files:",
+      paste(missing_files, collapse = ", ")
+    )
+  )
+}
+
+cat("\nApplication files verified.\n")
+cat("Launching Global Adhan Clock...\n\n")
+
+# Start the Shiny application
 shiny::runApp(
-  app,
+  appDir = project_dir,
   launch.browser = TRUE
 )

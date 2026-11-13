@@ -3,21 +3,18 @@
 <html lang="en">
 
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Global Adhan Clock - Interactive Earth</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <!-- Three.js configuration -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
-    }
-  }
-  </script>
+  <title>Global Adhan Clock - Earth</title>
 
   <style>
+
     * {
       box-sizing: border-box;
     }
@@ -25,157 +22,261 @@
     body {
       margin: 0;
       overflow: hidden;
-      background: #050b18;
+      background: #07111f;
       font-family: Arial, sans-serif;
+      color: white;
+    }
+
+    #globe-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
     }
 
     canvas {
       display: block;
     }
 
-    /* City information panel */
-    #city-panel {
+    #instruction-panel {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      width: 260px;
-      padding: 20px;
-      background: rgba(8, 20, 40, 0.92);
-      color: white;
-      border: 1px solid rgba(100, 180, 255, 0.3);
-      border-radius: 14px;
-      display: none;
-      z-index: 10;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      top: 18px;
+      left: 18px;
+      z-index: 5;
+      background: rgba(10, 25, 44, 0.85);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #d8e6f5;
+      max-width: 260px;
     }
 
-    #city-panel h2 {
-      margin: 0 0 15px;
-      color: #62c5ff;
+    #city-panel {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      z-index: 5;
+      width: 270px;
+      padding: 18px;
+      background: rgba(10, 25, 44, 0.94);
+      border: 1px solid rgba(112, 214, 176, 0.45);
+      border-radius: 12px;
+      display: none;
+    }
+
+    #city-panel h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: #70d6b0;
     }
 
     #city-panel p {
+      color: #d2deed;
       font-size: 13px;
-      line-height: 1.7;
+      line-height: 1.6;
       margin: 5px 0;
+    }
+
+    #local-clock {
+      color: #70d6b0;
+      font-size: 17px;
+      font-weight: bold;
+      margin-top: 12px;
     }
 
     #close-panel {
       position: absolute;
-      top: 10px;
-      right: 12px;
-      background: none;
-      border: none;
+      top: 8px;
+      right: 10px;
+      background: transparent;
       color: white;
+      border: none;
       font-size: 20px;
       cursor: pointer;
     }
 
-    #instructions {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      background: rgba(8, 20, 40, 0.8);
-      padding: 10px 18px;
-      border-radius: 20px;
+    #selection-status {
+      color: #70d6b0;
       font-size: 12px;
-      text-align: center;
-      pointer-events: none;
-      width: max-content;
-      max-width: 90%;
+      margin-top: 10px;
     }
+
   </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
 
 </head>
 
+
 <body>
 
-  <!-- City information panel -->
+  <div id="globe-container"></div>
+
+
+  <div id="instruction-panel">
+
+    <strong>GLOBAL ADHAN CLOCK</strong>
+
+    <p>Drag to rotate Earth.</p>
+
+    <p>Scroll to zoom.</p>
+
+    <p>Click a city marker to explore its local prayer times.</p>
+
+  </div>
+
+
   <div id="city-panel">
 
-    <button id="close-panel" aria-label="Close panel">×</button>
+    <button id="close-panel">×</button>
 
-    <h2 id="city-name">City</h2>
+    <h3 id="city-name">Selected City</h3>
 
     <p id="city-country"></p>
-    <p id="city-latitude"></p>
-    <p id="city-longitude"></p>
+
+    <p id="city-coordinates"></p>
+
     <p id="city-timezone"></p>
 
+    <div id="local-clock"></div>
+
+    <div id="selection-status">
+      Location selected
+    </div>
+
   </div>
 
-  <div id="instructions">
-    Drag to rotate Earth · Scroll to zoom · Click a city marker
-  </div>
 
   <script type="module">
 
-    import * as THREE from
-      "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+    import * as THREE from "three";
 
     import { OrbitControls } from
-      "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+      "three/addons/controls/OrbitControls.js";
 
 
-    // ==========================================
-    // 1. CREATE THE SCENE
-    // ==========================================
+    // ========================================================
+    // 1. SCENE
+    // ========================================================
+
+    const container =
+      document.getElementById("globe-container");
 
     const scene = new THREE.Scene();
 
-    scene.background = new THREE.Color(0x050b18);
+    scene.background = new THREE.Color(0x07111f);
 
 
-    // ==========================================
-    // 2. CREATE THE CAMERA
-    // ==========================================
+    // ========================================================
+    // 2. CAMERA
+    // ========================================================
 
     const camera = new THREE.PerspectiveCamera(
+
       45,
+
       window.innerWidth / window.innerHeight,
+
       0.1,
+
       1000
+
     );
 
     camera.position.set(0, 0, 3);
 
 
-    // ==========================================
-    // 3. CREATE THE RENDERER
-    // ==========================================
+    // ========================================================
+    // 3. RENDERER
+    // ========================================================
 
     const renderer = new THREE.WebGLRenderer({
+
       antialias: true
+
     });
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 2)
+    );
 
     renderer.setSize(
       window.innerWidth,
       window.innerHeight
     );
 
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
+    container.appendChild(renderer.domElement);
+
+
+    // ========================================================
+    // 4. LIGHTING
+    // ========================================================
+
+    const ambientLight = new THREE.AmbientLight(
+      0xffffff,
+      1.5
     );
 
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-    document.body.appendChild(renderer.domElement);
+    scene.add(ambientLight);
 
 
-    // ==========================================
-    // 4. CREATE THE EARTH
-    // ==========================================
+    const sunlight = new THREE.DirectionalLight(
+      0xffffff,
+      2
+    );
+
+    sunlight.position.set(5, 3, 5);
+
+    scene.add(sunlight);
+
+
+    // ========================================================
+    // 5. ORBIT CONTROLS
+    // ========================================================
+
+    const controls = new OrbitControls(
+      camera,
+      renderer.domElement
+    );
+
+    controls.enableDamping = true;
+
+    controls.dampingFactor = 0.05;
+
+    controls.minDistance = 1.5;
+
+    controls.maxDistance = 6;
+
+
+    // ========================================================
+    // 6. EARTH
+    // ========================================================
 
     const earthGeometry = new THREE.SphereGeometry(
       1,
-      96,
-      96
+      64,
+      64
     );
 
-    const earthMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff
+    const textureLoader = new THREE.TextureLoader();
+
+    const earthTexture = textureLoader.load(
+      "/globe/images/earth_texture.jpg"
+    );
+
+    const earthMaterial = new THREE.MeshPhongMaterial({
+
+      map: earthTexture,
+
+      shininess: 8
+
     });
 
     const earth = new THREE.Mesh(
@@ -186,58 +287,19 @@
     scene.add(earth);
 
 
-    // ==========================================
-    // 5. LOAD THE EARTH TEXTURE
-    // ==========================================
+    // ========================================================
+    // 7. LOCATION DATA
+    // ========================================================
 
-    const textureLoader = new THREE.TextureLoader();
+    // This is the initial demonstration dataset.
+    // The next expansion will load the full global dataset
+    // rather than manually writing every marker here.
 
-    textureLoader.load(
-
-      "/globe/images/earth_texture.jpg",
-
-      function(texture) {
-
-        // Correct image colour space
-        texture.colorSpace = THREE.SRGBColorSpace;
-
-        // Allow horizontal wrapping
-        texture.wrapS = THREE.RepeatWrapping;
-
-        // Align Greenwich with longitude 0
-        texture.offset.x = 0.25;
-
-        // Apply texture to Earth
-        earth.material.map = texture;
-
-        earth.material.needsUpdate = true;
-
-        console.log("Earth texture loaded successfully!");
-
-      },
-
-      undefined,
-
-      function(error) {
-
-        console.error(
-          "Could not load Earth texture:",
-          error
-        );
-
-      }
-
-    );
-
-
-    // ==========================================
-    // 6. CITY DATA
-    // ==========================================
-
-    const cityLocations = [
+    const cities = [
 
       {
-        name: "Lagos",
+        location_id: "lagos-nigeria",
+        city: "Lagos",
         country: "Nigeria",
         latitude: 6.5244,
         longitude: 3.3792,
@@ -245,7 +307,8 @@
       },
 
       {
-        name: "Abuja",
+        location_id: "abuja-nigeria",
+        city: "Abuja",
         country: "Nigeria",
         latitude: 9.0765,
         longitude: 7.3986,
@@ -253,7 +316,8 @@
       },
 
       {
-        name: "London",
+        location_id: "london-united-kingdom",
+        city: "London",
         country: "United Kingdom",
         latitude: 51.5072,
         longitude: -0.1276,
@@ -261,7 +325,8 @@
       },
 
       {
-        name: "Tokyo",
+        location_id: "tokyo-japan",
+        city: "Tokyo",
         country: "Japan",
         latitude: 35.6762,
         longitude: 139.6503,
@@ -271,19 +336,22 @@
     ];
 
 
-    // ==========================================
-    // 7. CONVERT LATITUDE AND LONGITUDE TO 3D
-    // ==========================================
+    // ========================================================
+    // 8. COORDINATES TO EARTH POSITION
+    // ========================================================
 
-    function getPosition(latitude, longitude, radius) {
+    function geographicToVector(
+      latitude,
+      longitude,
+      radius = 1.015
+    ) {
 
-      // Convert latitude to radians
-      const phi = latitude * (Math.PI / 180);
+      const phi =
+        latitude * Math.PI / 180;
 
-      // Convert longitude to radians
-      const lambda = longitude * (Math.PI / 180);
+      const lambda =
+        longitude * Math.PI / 180;
 
-      // Corrected geographic orientation
       const x =
         radius * Math.cos(phi) * Math.sin(lambda);
 
@@ -298,185 +366,192 @@
     }
 
 
+    // ========================================================
+    // 9. CITY MARKERS
+    // ========================================================
 
-// ==========================================
-// 8. CREATE ACCURATE LOCATION PIN MARKERS
-// ==========================================
+    const markerObjects = [];
 
-const cityMarkers = [];
+    const markerGeometry = new THREE.SphereGeometry(
+      0.012,
+      12,
+      12
+    );
 
-// Create a canvas for the location pin
-const pinCanvas = document.createElement("canvas");
+    cities.forEach(city => {
 
-pinCanvas.width = 128;
-pinCanvas.height = 160;
+      const markerMaterial =
+        new THREE.MeshBasicMaterial({
+          color: 0xff5555
+        });
 
-const ctx = pinCanvas.getContext("2d");
+      const marker = new THREE.Mesh(
+        markerGeometry,
+        markerMaterial
+      );
 
-// Draw the location pin
-ctx.beginPath();
+      marker.position.copy(
+        geographicToVector(
+          city.latitude,
+          city.longitude
+        )
+      );
 
-ctx.moveTo(64, 150);
+      marker.userData.city = city;
 
-ctx.bezierCurveTo(52, 128, 12, 84, 12, 53);
-ctx.bezierCurveTo(12, 22, 35, 5, 64, 5);
-ctx.bezierCurveTo(93, 5, 116, 22, 116, 53);
-ctx.bezierCurveTo(116, 84, 76, 128, 64, 150);
+      earth.add(marker);
 
-ctx.closePath();
-
-// Pin colour
-ctx.fillStyle = "#ff405c";
-ctx.fill();
-
-// White outline
-ctx.lineWidth = 7;
-ctx.strokeStyle = "#ffffff";
-ctx.stroke();
-
-// White circle inside pin
-ctx.beginPath();
-
-ctx.arc(64, 53, 19, 0, Math.PI * 2);
-
-ctx.fillStyle = "#ffffff";
-ctx.fill();
-
-// Convert canvas into Three.js texture
-const pinTexture = new THREE.CanvasTexture(pinCanvas);
-
-pinTexture.colorSpace = THREE.SRGBColorSpace;
-
-// Create location markers
-cityLocations.forEach(city => {
-
-    const pinMaterial = new THREE.SpriteMaterial({
-
-        map: pinTexture,
-        transparent: true,
-        depthTest: true,
-        depthWrite: true
+      markerObjects.push(marker);
 
     });
 
-    const marker = new THREE.Sprite(pinMaterial);
 
-    // IMPORTANT:
-    // Anchor the bottom tip of the pin to the coordinate
-    marker.center.set(0.5, 0.0);
-
-    // Pin dimensions
-    marker.scale.set(0.055, 0.070, 1);
-
-    // Calculate exact 3D geographical position
-    const cityPosition = getPosition(
-        city.latitude,
-        city.longitude,
-        1.008
-    );
-
-    marker.position.copy(cityPosition);
-
-    // Store city information
-    marker.userData = city;
-
-    // Attach marker to Earth
-    earth.add(marker);
-
-    // Save marker for click detection
-    cityMarkers.push(marker);
-
-    console.log(
-        "Accurate location pin:",
-        city.name,
-        city.latitude,
-        city.longitude
-    );
-
-});
-
-
-
-    // ==========================================
-    // 9. CREATE ATMOSPHERE
-    // ==========================================
-
-    const atmosphereGeometry = new THREE.SphereGeometry(
-      1.035,
-      64,
-      64
-    );
-
-    const atmosphereMaterial = new THREE.MeshBasicMaterial({
-
-      color: 0x168cff,
-
-      transparent: true,
-
-      opacity: 0.12,
-
-      side: THREE.BackSide
-
-    });
-
-    const atmosphere = new THREE.Mesh(
-      atmosphereGeometry,
-      atmosphereMaterial
-    );
-
-    earth.add(atmosphere);
-
-
-    // ==========================================
-    // 10. LIGHTING
-    // ==========================================
-
-    const sunlight = new THREE.DirectionalLight(
-      0xffffff,
-      2
-    );
-
-    sunlight.position.set(5, 3, 5);
-
-    scene.add(sunlight);
-
-    const ambientLight = new THREE.AmbientLight(
-      0xffffff,
-      0.25
-    );
-
-    scene.add(ambientLight);
-
-
-    // ==========================================
-    // 11. ROTATION AND ZOOM CONTROLS
-    // ==========================================
-
-    const controls = new OrbitControls(
-      camera,
-      renderer.domElement
-    );
-
-    controls.enableDamping = true;
-
-    controls.dampingFactor = 0.05;
-
-    controls.enableZoom = true;
-
-    controls.minDistance = 1.5;
-
-    controls.maxDistance = 8;
-
-
-    // ==========================================
-    // 12. CLICKABLE CITY MARKERS
-    // ==========================================
+    // ========================================================
+    // 10. CLICK DETECTION
+    // ========================================================
 
     const raycaster = new THREE.Raycaster();
 
     const mouse = new THREE.Vector2();
 
-    const cityPanel = document.getElementById("city-panel");
+    let selectedCity = null;
+
+
+    // ========================================================
+    // 11. SEND LOCATION TO SHINY
+    // ========================================================
+
+    function sendLocationToShiny(city) {
+
+      window.parent.postMessage(
+
+        {
+
+          type: "global-adhan-location-selected",
+
+          location: {
+
+            location_id: city.location_id,
+
+            city: city.city,
+
+            country: city.country,
+
+            latitude: city.latitude,
+
+            longitude: city.longitude,
+
+            timezone: city.timezone
+
+          }
+
+        },
+
+        window.location.origin
+
+      );
+
+    }
+
+
+    // ========================================================
+    // 12. LOCAL CLOCK
+    // ========================================================
+
+    function updateLocalClock() {
+
+      if (!selectedCity) {
+        return;
+      }
+
+      const clock = document.getElementById(
+        "local-clock"
+      );
+
+      const now = new Date();
+
+      try {
+
+        clock.textContent =
+          new Intl.DateTimeFormat(
+
+            "en-GB",
+
+            {
+
+              timeZone: selectedCity.timezone,
+
+              weekday: "short",
+
+              year: "numeric",
+
+              month: "short",
+
+              day: "2-digit",
+
+              hour: "2-digit",
+
+              minute: "2-digit",
+
+              second: "2-digit",
+
+              hour12: false
+
+            }
+
+          ).format(now);
+
+      } catch (error) {
+
+        clock.textContent =
+          "Local clock unavailable";
+
+      }
+
+    }
+
+
+    // ========================================================
+    // 13. SHOW SELECTED CITY
+    // ========================================================
+
+    function showCity(city) {
+
+      selectedCity = city;
+
+      document.getElementById(
+        "city-name"
+      ).textContent = city.city;
+
+      document.getElementById(
+        "city-country"
+      ).textContent = city.country;
+
+      document.getElementById(
+        "city-coordinates"
+      ).textContent =
+        "Latitude: " + city.latitude +
+        " | Longitude: " + city.longitude;
+
+      document.getElementById(
+        "city-timezone"
+      ).textContent =
+        "Timezone: " + city.timezone;
+
+      document.getElementById(
+        "city-panel"
+      ).style.display = "block";
+
+      updateLocalClock();
+
+      sendLocationToShiny(city);
+
+    }
+
+
+    // ========================================================
+    // 14. HANDLE MARKER CLICKS
+    // ========================================================
 
     renderer.domElement.addEventListener(
       "click",
@@ -486,39 +561,27 @@ cityLocations.forEach(city => {
           renderer.domElement.getBoundingClientRect();
 
         mouse.x =
-          ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+          ((event.clientX - bounds.left) /
+            bounds.width) * 2 - 1;
 
         mouse.y =
-          -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+          -((event.clientY - bounds.top) /
+            bounds.height) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
 
-        const intersections = raycaster.intersectObjects(
-          cityMarkers,
-          false
-        );
+        const intersections =
+          raycaster.intersectObjects(markerObjects);
 
         if (intersections.length > 0) {
 
-          const selectedCity =
-            intersections[0].object.userData;
+          const clickedMarker =
+            intersections[0].object;
 
-          document.getElementById("city-name").textContent =
-            selectedCity.name;
+          const city =
+            clickedMarker.userData.city;
 
-          document.getElementById("city-country").textContent =
-            "Country: " + selectedCity.country;
-
-          document.getElementById("city-latitude").textContent =
-            "Latitude: " + selectedCity.latitude + "°";
-
-          document.getElementById("city-longitude").textContent =
-            "Longitude: " + selectedCity.longitude + "°";
-
-          document.getElementById("city-timezone").textContent =
-            "Time zone: " + selectedCity.timezone;
-
-          cityPanel.style.display = "block";
+          showCity(city);
 
         }
 
@@ -526,23 +589,46 @@ cityLocations.forEach(city => {
     );
 
 
-    // ==========================================
-    // 13. CLOSE CITY INFORMATION PANEL
-    // ==========================================
+    // ========================================================
+    // 15. CLOSE LOCATION PANEL
+    // ========================================================
 
-    document.getElementById("close-panel").addEventListener(
-      "click",
+    document.getElementById(
+      "close-panel"
+    ).addEventListener("click", function() {
+
+      document.getElementById(
+        "city-panel"
+      ).style.display = "none";
+
+    });
+
+
+    // ========================================================
+    // 16. RESPONSIVE WINDOW
+    // ========================================================
+
+    window.addEventListener(
+      "resize",
       function() {
 
-        cityPanel.style.display = "none";
+        camera.aspect =
+          window.innerWidth / window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+          window.innerWidth,
+          window.innerHeight
+        );
 
       }
     );
 
 
-    // ==========================================
-    // 14. ANIMATION LOOP
-    // ==========================================
+    // ========================================================
+    // 17. ANIMATION
+    // ========================================================
 
     function animate() {
 
@@ -550,34 +636,13 @@ cityLocations.forEach(city => {
 
       controls.update();
 
+      updateLocalClock();
+
       renderer.render(scene, camera);
 
     }
 
     animate();
-
-
-    // ==========================================
-    // 15. RESPONSIVE WINDOW
-    // ==========================================
-
-    window.addEventListener("resize", function() {
-
-      camera.aspect =
-        window.innerWidth / window.innerHeight;
-
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-      );
-
-      renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, 2)
-      );
-
-    });
 
   </script>
 
